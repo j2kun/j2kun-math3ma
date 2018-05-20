@@ -29,6 +29,10 @@ let labelToStrokeColor = {
   'target': '#003300',
 };
 
+let lineFunction = d3.line()
+  .x(function(d) { return fromCartesianX(d.x); })
+  .y(function(d) { return fromCartesianY(d.y); });
+
 
 function createRectangleSVG(rectangle) {
   let topLeft = rectangle.topLeft();
@@ -58,10 +62,6 @@ function createCircleSVG(point) {
 }
 
 function createPolylineSVG(points) {
-  let lineFunction = d3.line()
-    .x(function(d) { return fromCartesianX(d.x); })
-    .y(function(d) { return fromCartesianY(d.y); });
-
   var lineGraph = svg.append("path")
     .attr("d", lineFunction(points))
     .attr("stroke", "black")
@@ -93,24 +93,22 @@ function rayStyle(raySVG, id, color) {
   return vectorSVG;
 }
 
-function setupBehavior() {
-  function dragged(d, vector, arrowhead, labelName) {
-    d.x += d3.event.dx;
-    d.y -= d3.event.dy;
-    setPosition(vector, labelName);
-    setArrowheadPosition(arrowhead);
-  }
+function setupBehavior(baseObjects, assassinSVGs) {
+  let { assassin, square } = baseObjects;
+  let { assassinSVG, rayLinesSVG } = assassinSVGs;
 
-  arrowhead.call(d3.drag().on("drag", function(d) {
-    dragged(d, normal, arrowhead, 'normal');
-    setSpanningPosition(spanning);
-    setParallelPositions(d);
-  }));
+  // On mouse move, reset and redraw ray
+  svg.on('mousemove', function() {
+    let coords = d3.mouse(this);
+    let x = coords[0];
+    let y = coords[1];
 
-  setPosition(normal, 'normal');
-  setArrowheadPosition(arrowhead);
-  setSpanningPosition(spanning);
-  setParallelPositions(normal.datum());
+    if (x != 0 && y != 0) {
+      let mouseVector = new Vector(toCartesianX(x), toCartesianY(y));
+      ray.direction = mouseVector.subtract(ray.center);
+      rayLinesSVG.attr("d", lineFunction(square.rayToPoints(ray)));
+    }
+  });
 }
 
 
@@ -142,7 +140,7 @@ rectangleStyle(squareSVG);
 // Choose two random points in the square
 let assassin = randomPoint(square);
 assassin.label = "assassin";
-let ray = new Ray(assassin, new Vector(100, 120), length=1000);
+let ray = new Ray(assassin, new Vector(100, 120), length=10000);
 let assassinSVG = createAssassinSVG(assassin, square, ray);
 
 let target = randomPoint(square);
@@ -153,4 +151,10 @@ while (target.distance(assassin) < assassinToTargetMargin) {
 target.label = "target";
 let targetSVG = createCircleSVG(target);
 
-// setupBehavior();
+let baseObjects = {
+  assassin: assassin,
+  target: target,
+  square: square,
+};
+
+setupBehavior(baseObjects, assassinSVG);

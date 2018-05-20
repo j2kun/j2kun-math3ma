@@ -147,11 +147,9 @@ class Rectangle {
     // within the square
     
     let tValues = [tTop, tBottom, tLeft, tRight];
-    console.log(tValues);
     for (let i = 0; i < tValues.length; i++) {
       let t = tValues[i];
       let intersection = new Vector(c1 + t * v1, c2 + t * v2);
-      console.log(intersection);
       if (t > 0 && this.contains(intersection)) {
         return intersection;
       }
