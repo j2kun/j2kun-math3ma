@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { Vector, Ray, Rectangle, midpoint } from './geometry';
+import { Vector, Ray, Rectangle, midpoint, computeOptimalGuards } from './geometry';
 
 let width = 800;
 let height = 600;
@@ -20,12 +20,12 @@ function toCartesianY(y) { return -y + originY; }
 
 let labelToColor = {
   'assassin': '#999999',
-  'block': 'red',
+  'guard': 'red',
   'target': 'green',
 };
 let labelToStrokeColor = {
   'assassin': '#333333',
-  'block': '#330000',
+  'guard': '#330000',
   'target': '#003300',
 };
 
@@ -81,6 +81,20 @@ function createAssassinSVG(point, square, ray) {
   };
 }
 
+function createGuardsSVG(guards) {
+  let circleContainers = svg.selectAll(".guard").data(guards).enter().append('g');
+  let circles = circleContainers.append('circle');
+  circles.attr("cx", function (d) { return fromCartesianX(d.x); })
+         .attr("cy", function (d) { return fromCartesianY(d.y); })
+         .attr("r", function (d) { return 6; }) 
+         .attr("fill", function (d) { return labelToColor[d.label]; })
+         .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
+         .attr("stroke-width", 2);
+
+  return circles;
+}
+
+
 function setupBehavior(baseObjects, assassinSVGs) {
   let { assassin, square } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
@@ -128,7 +142,7 @@ rectangleStyle(squareSVG);
 // Choose two random points in the square
 let assassin = randomPoint(square);
 assassin.label = "assassin";
-let ray = new Ray(assassin, new Vector(100, 120), length=1000);
+let ray = new Ray(assassin, new Vector(100, 120), length=2000);
 let assassinSVG = createAssassinSVG(assassin, square, ray);
 
 // Make sure the target isn't too close to the assassin
@@ -139,6 +153,11 @@ while (target.distance(assassin) < assassinToTargetMargin) {
 }
 target.label = "target";
 let targetSVG = createCircleSVG(target);
+
+// Set up the optimal guards
+let guards = computeOptimalGuards(square, assassin, target);
+guards.forEach(guard => { guard.label = "guard"; });
+let guardsSVG = createGuardsSVG(guards);
 
 let baseObjects = {
   assassin: assassin,

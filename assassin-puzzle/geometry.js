@@ -39,6 +39,10 @@ class Vector {
   distance(vector) {
     return this.subtract(vector).norm();
   }
+
+  toString() {
+    return "[" + this.x + ", " + this.y + "]";
+  }
 }
 
 
@@ -104,8 +108,8 @@ class Rectangle {
 
   /*
    * Given a ray, compute the first point of interesection of the ray with the 
-   * rectangle's boundary. Assume the ray emanates from a point inside the square,
-   * and the center of the ray is not on the boundary of the square.
+   * rectangle's boundary. Assume the ray emanates from a point inside the rectangle,
+   * and the center of the ray is not on the boundary of the rectangle.
    *
    * If bottomLeft = (x1, y1) and topRight = (x2, y2) and the ray is 
    * { (c1, c2) + t (v1, v2) : t > 0 }, then the following equations 
@@ -144,7 +148,7 @@ class Rectangle {
     let tRight = (x2 - c1) / v1;
 
     // Exactly one t value should be both positive and result in a point
-    // within the square
+    // within the rectangle
     
     let tValues = [tTop, tBottom, tLeft, tRight];
     for (let i = 0; i < tValues.length; i++) {
@@ -168,7 +172,7 @@ class Rectangle {
       let intersection = new Vector(c1 + t * v1, c2 + t * v2);
       console.log(intersection);
     } 
-    throw "Unexpected error: ray never intersects square!";
+    throw "Unexpected error: ray never intersects rectangle!";
   }
 
   /* 
@@ -186,14 +190,14 @@ class Rectangle {
       throw (
         "Invalid argument to isOnVerticalWall: point " 
         + pointOnWall + 
-        " is not on the square " 
+        " is not on the rectangle" 
         + this
       );
     }
   }
 
   /* Split a ray into a line segment and a shorter ray that's "bounced" off 
-   * the wall of the square */
+   * the wall of the rectangle */
   splitRay(ray) {
     let segment = [ray.center, this.rayIntersection(ray)];
     let segmentLength = segment[0].subtract(segment[1]).norm();
@@ -240,6 +244,120 @@ class Rectangle {
 
     return points;
   }
+
+  // Mirror a point across the top side of the rectangle
+  mirrorTop(vector) {
+    let dyToTop = this.topRight.y - vector.y;
+    return new Vector(vector.x, this.topRight.y + dyToTop);
+  }
+
+  // Mirror a point across the left side of the rectangle
+  mirrorLeft(vector) {
+    let dxToLeft = this.bottomLeft.x - vector.x;
+    return new Vector(this.bottomLeft.x + dxToLeft, vector.y);
+  }
+
+  // Mirror a point across the bottom side of the rectangle
+  mirrorBottom(vector) {
+    let dyToBottom = this.bottomLeft.y - vector.y;
+    return new Vector(vector.x, this.bottomLeft.y + dyToBottom);
+  }
+
+  // Mirror a point across the right side of the rectangle
+  mirrorRight(vector) {
+    let dxToRight = this.topRight.x - vector.x;
+    return new Vector(this.topRight.x + dxToRight, vector.y);
+  }
+}
+
+
+/* 
+ * Compute the 16 optimal guards to prevent the assassin from hitting the
+ * target.
+ */
+function computeOptimalGuards(square, assassin, target) {
+  // First compute the target copies in the 4 mirrors
+  let target1 = target.copy();
+  let target2 = square.mirrorTop(target);
+  let target3 = square.mirrorRight(target);
+  let target4 = square.mirrorTop(square.mirrorRight(target));
+
+  // for each mirrored target, compute the four two-square-length translates
+  let mirroredTargets = [target1, target2, target3, target4];
+  let horizontalShift = 2 * square.width();
+  let verticalShift = 2 * square.height();
+  let translateLeft = new Vector(-horizontalShift, 0);
+  let translateRight = new Vector(horizontalShift, 0);
+  let translateUp = new Vector(0, verticalShift);
+  let translateDown = new Vector(0, -verticalShift);
+
+  let translatedTargets = [];
+  for (let i = 0; i < mirroredTargets.length; i++) {
+    let target = mirroredTargets[i];
+    translatedTargets.push([
+      target,
+      target.add(translateLeft),
+      target.add(translateDown),
+      target.add(translateLeft).add(translateDown),
+    ]);
+  }
+
+  // compute the midpoints between the assassin and each translate
+  let translatedMidpoints = [];
+  for (let i = 0; i < translatedTargets.length; i++) {
+    let targetList = translatedTargets[i];
+    translatedMidpoints.push(targetList.map(t => midpoint(assassin, t)));
+  }
+
+  console.log("translated midpoints");
+  console.log(translatedMidpoints);
+
+  // determine which of the four possible translates the midpoint is in
+  // and reverse the translation. Since midpoints can end up in completely
+  // different copies of the square, we have to check each one for all cases.
+  function untranslate(point) {
+    if (point.x < square.bottomLeft.x && point.y > square.bottomLeft.y) {
+      return point.add(translateRight);
+    } else if (point.x >= square.bottomLeft.x && point.y <= square.bottomLeft.y) {
+      return point.add(translateUp);
+    } else if (point.x < square.bottomLeft.x && point.y <= square.bottomLeft.y) {
+      return point.add(translateRight).add(translateUp);
+    } else {
+      return point;
+    }
+  }
+
+  // undo the translations to get the midpoints back to the original 4-mirrored square.
+  let untranslatedMidpoints = [];
+  for (let i = 0; i < translatedMidpoints.length; i++) {
+    let midpointList = translatedMidpoints[i];
+    let untranslated = midpointList.map(untranslate);
+    untranslatedMidpoints.push(...untranslated);
+  }
+
+  console.log("untranslated midpoints");
+  console.log(untranslatedMidpoints);
+
+  // Now undo the mirroring on each midpoint list to get the midpoints all
+  // back to the original square. Each midpoint can be in a different mirror
+  // from the assassin or the target, so we just check all four possibilities
+  // and mirror as needed.
+  function unmirror(point) {
+    if (point.x > square.topRight.x && point.y > square.topRight.y) {
+      return square.mirrorTop(square.mirrorRight(point));
+    } else if (point.x > square.topRight.x && point.y <= square.topRight.y) {
+      return square.mirrorRight(point);
+    } else if (point.x <= square.topRight.x && point.y > square.topRight.y) {
+      return square.mirrorTop(point);
+    } else {
+      return point;
+    }
+  }
+
+  console.log("final output");
+  console.log(untranslatedMidpoints.map(unmirror));
+
+  return untranslatedMidpoints.map(unmirror);
 }
 
 
@@ -248,4 +366,5 @@ module.exports = {
   Ray,
   Rectangle,
   midpoint,
+  computeOptimalGuards,
 };
