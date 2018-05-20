@@ -18,6 +18,17 @@ function fromCartesianY(y) { return originY - y; }
 function toCartesianX(x) { return x - originX; }
 function toCartesianY(y) { return -y + originY; }
 
+let labelToColor = {
+  'assassin': '#999999',
+  'block': 'red',
+  'target': 'green',
+};
+let labelToStrokeColor = {
+  'assassin': '#333333',
+  'block': '#330000',
+  'target': '#003300',
+};
+
 
 function createRectangleSVG(rectangle) {
   let topLeft = rectangle.topLeft();
@@ -40,15 +51,34 @@ function createCircleSVG(point) {
     .attr("cx", fromCartesianX(point.x))
     .attr("cy", fromCartesianY(point.y))
     .attr("r", 6)
-    .attr("fill", point.labelToColor[point.label])
-    .attr("stroke", point.labelToStrokeColor[point.label])
+    .attr("fill", labelToColor[point.label])
+    .attr("stroke", labelToStrokeColor[point.label])
     .attr("stroke-width", 2);
   return circleSVG;
 }
 
-function createAssassinSVG(point) {
-  let assassinPointSVG = createCircleSVG(point);
-  // create a collection of lines representing the ray of the assassin's shot
+function createPolylineSVG(points) {
+  let lineFunction = d3.line()
+    .x(function(d) { return fromCartesianX(d.x); })
+    .y(function(d) { return fromCartesianY(d.y); });
+
+  var lineGraph = svg.append("path")
+    .attr("d", lineFunction(points))
+    .attr("stroke", "black")
+    .attr("stroke-width", 2)
+    .attr("fill", "none");
+
+  return lineGraph;
+}
+
+function createAssassinSVG(point, square, ray) {
+  let assassinSVG = createCircleSVG(point);
+  let rayLinesSVG = createPolylineSVG(square.rayToPoints(ray));
+  
+  return {
+    assassinSVG: assassinSVG,
+    rayLinesSVG: rayLinesSVG,
+  };
 }
 
 function rayStyle(raySVG, id, color) {
@@ -100,9 +130,6 @@ function randomPoint(square) {
   let maxX = shrunkenSquare.topRight.x;
   let maxY = shrunkenSquare.topRight.y;
 
-  console.log("x in [" + minX + ", " + maxX + "], y in ["
-    + minY + ", " + maxY + "]");
-
   return new Vector(randomInt(minX, maxX), randomInt(minY, maxY));
 }
 
@@ -112,11 +139,11 @@ let square = new Rectangle(new Vector(-200, -200), new Vector(200, 200));
 let squareSVG = createRectangleSVG(square);
 rectangleStyle(squareSVG);
 
-
 // Choose two random points in the square
 let assassin = randomPoint(square);
 assassin.label = "assassin";
-let assassinSVG = createCircleSVG(assassin);
+let ray = new Ray(assassin, new Vector(100, 120), length=1000);
+let assassinSVG = createAssassinSVG(assassin, square, ray);
 
 let target = randomPoint(square);
 let assassinToTargetMargin = 100;
