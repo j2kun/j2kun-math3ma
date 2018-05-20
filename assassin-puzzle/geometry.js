@@ -155,6 +155,19 @@ class Rectangle {
       }
     } 
 
+    console.log("raycenter");
+    console.log(ray.center);
+    console.log("raydirection");
+    console.log(ray.direction);
+    console.log("raylength");
+    console.log(ray.length);
+    console.log("tValues");
+    console.log(tValues);
+    for (let i = 0; i < tValues.length; i++) {
+      let t = tValues[i];
+      let intersection = new Vector(c1 + t * v1, c2 + t * v2);
+      console.log(intersection);
+    } 
     throw "Unexpected error: ray never intersects square!";
   }
 
@@ -186,7 +199,7 @@ class Rectangle {
     let segmentLength = segment[0].subtract(segment[1]).norm();
     let remainingLength = ray.length - segmentLength;
 
-    if (remainingLength < 0) {
+    if (remainingLength < 10) {
       return {
         segment: [ray.center, ray.endpoint()], 
         ray: null
@@ -205,6 +218,7 @@ class Rectangle {
       // reflect across the vertical line through the ray intersection point.
       let dx = segment[1].x - segment[0].x;
       let newRayEndpoint = new Vector(segment[1].x + dx, segment[0].y);
+      // console.log("newRayEndpoint: " + newRayEndpoint.x + ", " + newRayEndpoint.y);
       newRayDirection = newRayEndpoint.subtract(segment[1]);
     }
 

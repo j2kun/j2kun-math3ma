@@ -81,18 +81,6 @@ function createAssassinSVG(point, square, ray) {
   };
 }
 
-function rayStyle(raySVG, id, color) {
-  raySVG
-    .attr("x1", function(d) { return fromCartesianX(assassin.x); })
-    .attr("y1", function(d) { return fromCartesianY(assassin.y); })
-    .attr("x2", function(d) { return fromCartesianX(d.x); })
-    .attr("y2", function(d) { return fromCartesianY(d.y); })
-    .attr("id", id)
-    .attr("stroke", color)
-    .attr("stroke-width", vectorStroke);
-  return vectorSVG;
-}
-
 function setupBehavior(baseObjects, assassinSVGs) {
   let { assassin, square } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
@@ -140,9 +128,10 @@ rectangleStyle(squareSVG);
 // Choose two random points in the square
 let assassin = randomPoint(square);
 assassin.label = "assassin";
-let ray = new Ray(assassin, new Vector(100, 120), length=10000);
+let ray = new Ray(assassin, new Vector(100, 120), length=1000);
 let assassinSVG = createAssassinSVG(assassin, square, ray);
 
+// Make sure the target isn't too close to the assassin
 let target = randomPoint(square);
 let assassinToTargetMargin = 100;
 while (target.distance(assassin) < assassinToTargetMargin) {
@@ -157,4 +146,5 @@ let baseObjects = {
   square: square,
 };
 
+// Set up interactivity
 setupBehavior(baseObjects, assassinSVG);
