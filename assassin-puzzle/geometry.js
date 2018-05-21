@@ -2,7 +2,13 @@ function midpoint(a, b) {
   return new Vector((a.x + b.x) / 2, (a.y + b.y) / 2);
 }
 
+function innerProduct(a, b) {
+  return a.x * b.x + a.y * b.y;
+}
+
+
 var epsilon = 0.0001;
+var intersectionRadius = 3;  // radius around each blocking point
 
 class Vector {
   constructor(x, y, label) {
@@ -16,7 +22,7 @@ class Vector {
   }
 
   normalized() {
-    let norm = Math.sqrt(this.x * this.x + this.y * this.y);
+    let norm = 1.0 * this.norm();
     return new Vector(this.x / norm, this.y / norm);
   }
 
@@ -69,10 +75,44 @@ class Ray {
     }
     this.direction = direction.normalized();
   }
+
+  setDirection(direction) {
+    this.direction = direction.normalized();
+  }
  
-  // The endpoint as determined by the length. (Helper for rendering)
   endpoint() {
     return this.center.add(this.direction.scale(this.length));
+  }
+
+  intersects(point) {
+    let shiftedPoint = point.subtract(this.center);
+    let signedLength = innerProduct(shiftedPoint, this.direction);
+    let projectedVector = this.direction.scale(signedLength);
+    let differenceVector = shiftedPoint.subtract(projectedVector);
+
+    if (signedLength > 0 
+        && this.length > signedLength
+        && differenceVector.norm() < intersectionRadius) {
+      return projectedVector.add(this.center);
+    } else {
+      return null;
+    }
+  }
+
+  closestToCenter(points) {
+    let minDist = null;
+    let bestPoint;
+
+    for (let i = 0; i < points.length; i++) {
+      let point = points[i];
+      let dist = point.subtract(this.center).norm();
+      if (minDist == null || dist < minDist) {
+        minDist = dist;
+        bestPoint = point;
+      }
+    }
+
+    return bestPoint;
   }
 }
 
@@ -221,10 +261,16 @@ class Rectangle {
     let remainingRay = ray;
     
     while (remainingRay) {
-      let hardStops = stoppingPoints.filter(p => ray.intersects(p));
-      if (hardStops) {
-        // find first intersection and break
-
+      // check if the ray would hit any guards or the target
+      if (stoppingPoints) {
+        let hardStops = stoppingPoints.map(p => remainingRay.intersects(p))
+          .filter(p => p != null);
+        if (hardStops.length > 0) {
+          // find first intersection and break
+          let closestStop = remainingRay.closestToCenter(hardStops);
+          points.push(closestStop);
+          break;
+        }
       }
 
       let rayPieces = this.splitRay(remainingRay);

@@ -13,6 +13,8 @@ let numPoints = 40;
 let originX = width / 2;
 let originY = height / 2;
 
+let pointRadius = 3;
+
 function fromCartesianX(x) { return originX + x; }
 function fromCartesianY(y) { return originY - y; }
 function toCartesianX(x) { return x - originX; }
@@ -21,7 +23,7 @@ function toCartesianY(y) { return -y + originY; }
 let labelToColor = {
   'assassin': '#999999',
   'guard': 'red',
-  'target': 'green',
+  'target': '#77FF77',
 };
 let labelToStrokeColor = {
   'assassin': '#333333',
@@ -40,21 +42,18 @@ function createRectangleSVG(rectangle) {
        .attr("x", fromCartesianX(topLeft.x))
        .attr("y", fromCartesianY(topLeft.y))
        .attr("width", rectangle.width())
-       .attr("height", rectangle.height());
+       .attr("height", rectangle.height())
+       .attr("stroke", "black")
+       .attr("stroke-width", 4)
+       .attr("fill", "none");
   return rectangleSVG;
-}
-
-function rectangleStyle(rectangleSVG) {
-  rectangleSVG.attr("stroke", "black")
-    .attr("stroke-width", 4)
-    .attr("fill", "none");
 }
 
 function createCircleSVG(point) {
   let circleSVG = svg.append('circle')
     .attr("cx", fromCartesianX(point.x))
     .attr("cy", fromCartesianY(point.y))
-    .attr("r", 6)
+    .attr("r", pointRadius)
     .attr("fill", labelToColor[point.label])
     .attr("stroke", labelToStrokeColor[point.label])
     .attr("stroke-width", 2);
@@ -71,9 +70,9 @@ function createPolylineSVG(points) {
   return lineGraph;
 }
 
-function createAssassinSVG(point, square, ray) {
+function createAssassinSVG(point, square, ray, stoppingPoints) {
   let assassinSVG = createCircleSVG(point);
-  let rayLinesSVG = createPolylineSVG(square.rayToPoints(ray));
+  let rayLinesSVG = createPolylineSVG(square.rayToPoints(ray, stoppingPoints));
   
   return {
     assassinSVG: assassinSVG,
@@ -86,7 +85,7 @@ function createGuardsSVG(guards) {
   let circles = circleContainers.append('circle');
   circles.attr("cx", function (d) { return fromCartesianX(d.x); })
          .attr("cy", function (d) { return fromCartesianY(d.y); })
-         .attr("r", function (d) { return 6; }) 
+         .attr("r", pointRadius) 
          .attr("fill", function (d) { return labelToColor[d.label]; })
          .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
          .attr("stroke-width", 2);
@@ -96,7 +95,7 @@ function createGuardsSVG(guards) {
 
 
 function setupBehavior(baseObjects, assassinSVGs) {
-  let { assassin, square } = baseObjects;
+  let { assassin, square, target, guards } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
 
   // On mouse move, reset and redraw ray
@@ -107,8 +106,9 @@ function setupBehavior(baseObjects, assassinSVGs) {
 
     if (x != 0 && y != 0) {
       let mouseVector = new Vector(toCartesianX(x), toCartesianY(y));
-      ray.direction = mouseVector.subtract(ray.center);
-      rayLinesSVG.attr("d", lineFunction(square.rayToPoints(ray)));
+      ray.setDirection(mouseVector.subtract(ray.center));
+      rayLinesSVG.attr("d", 
+        lineFunction(square.rayToPoints(ray, guards.concat([target]))));
     }
   });
 }
@@ -133,36 +133,34 @@ function randomPoint(square) {
   return new Vector(randomInt(minX, maxX), randomInt(minY, maxY));
 }
 
-
-// Set up the containing square
+// Set up the geometric objects
 let square = new Rectangle(new Vector(-200, -200), new Vector(200, 200));
-let squareSVG = createRectangleSVG(square);
-rectangleStyle(squareSVG);
-
-// Choose two random points in the square
 let assassin = randomPoint(square);
-assassin.label = "assassin";
-let ray = new Ray(assassin, new Vector(100, 120), length=2000);
-let assassinSVG = createAssassinSVG(assassin, square, ray);
-
-// Make sure the target isn't too close to the assassin
 let target = randomPoint(square);
+let ray = new Ray(assassin, new Vector(10, 12), length=5000);
+// Make sure the target isn't too close to the assassin
 let assassinToTargetMargin = 100;
 while (target.distance(assassin) < assassinToTargetMargin) {
   target = randomPoint(square);
 }
-target.label = "target";
-let targetSVG = createCircleSVG(target);
 
-// Set up the optimal guards
+// Now set up guards
 let guards = computeOptimalGuards(square, assassin, target);
+
+assassin.label = "assassin";
+target.label = "target";
 guards.forEach(guard => { guard.label = "guard"; });
+
+let squareSVG = createRectangleSVG(square);
+let targetSVG = createCircleSVG(target);
 let guardsSVG = createGuardsSVG(guards);
+let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 
 let baseObjects = {
   assassin: assassin,
   target: target,
   square: square,
+  guards: guards,
 };
 
 // Set up interactivity
