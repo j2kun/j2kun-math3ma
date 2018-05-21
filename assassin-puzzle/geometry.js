@@ -213,11 +213,20 @@ class Rectangle {
     };
   }
 
-  rayToPoints(ray) {
+  // Convert a ray into a list of points, where the points are where the ray
+  // either bounces off of walls (continues) or runs into another point (a guard
+  // or the target)
+  rayToPoints(ray, stoppingPoints) {
     let points = [ray.center];
     let remainingRay = ray;
     
     while (remainingRay) {
+      let hardStops = stoppingPoints.filter(p => ray.intersects(p));
+      if (hardStops) {
+        // find first intersection and break
+
+      }
+
       let rayPieces = this.splitRay(remainingRay);
       points.push(rayPieces.segment[1]);
       remainingRay = rayPieces.ray;
