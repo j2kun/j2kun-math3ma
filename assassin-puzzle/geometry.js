@@ -133,12 +133,12 @@ class Rectangle {
     let y2 = this.topRight.y;
 
     // ray is vertically up or down
-    if (v1 == 0) {
+    if (Math.abs(v1) < epsilon) {
       return new Vector(c1, (v2 > 0 ? y2 : y1));
     }
 
     // ray is horizontally left or right
-    if (v2 == 0) {
+    if (Math.abs(v2) < epsilon) {
       return new Vector((v1 > 0 ? x2 : x1), c2);
     }
 
@@ -154,24 +154,11 @@ class Rectangle {
     for (let i = 0; i < tValues.length; i++) {
       let t = tValues[i];
       let intersection = new Vector(c1 + t * v1, c2 + t * v2);
-      if (t > 0 && this.contains(intersection)) {
+      if (t > epsilon && this.contains(intersection)) {
         return intersection;
       }
     } 
 
-    console.log("raycenter");
-    console.log(ray.center);
-    console.log("raydirection");
-    console.log(ray.direction);
-    console.log("raylength");
-    console.log(ray.length);
-    console.log("tValues");
-    console.log(tValues);
-    for (let i = 0; i < tValues.length; i++) {
-      let t = tValues[i];
-      let intersection = new Vector(c1 + t * v1, c2 + t * v2);
-      console.log(intersection);
-    } 
     throw "Unexpected error: ray never intersects rectangle!";
   }
 
@@ -214,21 +201,15 @@ class Rectangle {
     let newRayDirection = null;
     
     if (vertical) {
-      // reflect across the horizontal line through the ray intersection point.
-      let dy = segment[1].y - segment[0].y;
-      let newRayEndpoint = new Vector(segment[0].x, segment[1].y + dy);
-      newRayDirection = newRayEndpoint.subtract(segment[1]);
+      newRayDirection = new Vector(-ray.direction.x, ray.direction.y);
     } else {
-      // reflect across the vertical line through the ray intersection point.
-      let dx = segment[1].x - segment[0].x;
-      let newRayEndpoint = new Vector(segment[1].x + dx, segment[0].y);
-      // console.log("newRayEndpoint: " + newRayEndpoint.x + ", " + newRayEndpoint.y);
-      newRayDirection = newRayEndpoint.subtract(segment[1]);
+      newRayDirection = new Vector(ray.direction.x, -ray.direction.y);
     }
 
+    let newRay = new Ray(segment[1], newRayDirection, length=remainingLength);
     return {
       segment: segment, 
-      ray: new Ray(segment[1], newRayDirection, length=remainingLength)
+      ray: newRay
     };
   }
 
@@ -309,9 +290,6 @@ function computeOptimalGuards(square, assassin, target) {
     translatedMidpoints.push(targetList.map(t => midpoint(assassin, t)));
   }
 
-  console.log("translated midpoints");
-  console.log(translatedMidpoints);
-
   // determine which of the four possible translates the midpoint is in
   // and reverse the translation. Since midpoints can end up in completely
   // different copies of the square, we have to check each one for all cases.
@@ -335,9 +313,6 @@ function computeOptimalGuards(square, assassin, target) {
     untranslatedMidpoints.push(...untranslated);
   }
 
-  console.log("untranslated midpoints");
-  console.log(untranslatedMidpoints);
-
   // Now undo the mirroring on each midpoint list to get the midpoints all
   // back to the original square. Each midpoint can be in a different mirror
   // from the assassin or the target, so we just check all four possibilities
@@ -353,9 +328,6 @@ function computeOptimalGuards(square, assassin, target) {
       return point;
     }
   }
-
-  console.log("final output");
-  console.log(untranslatedMidpoints.map(unmirror));
 
   return untranslatedMidpoints.map(unmirror);
 }
