@@ -50,7 +50,7 @@ function createRectangleSVG(rectangle) {
 }
 
 function createCircleSVG(point) {
-  let circleSVG = svg.append('circle')
+  let circleSVG = svg.datum(point).append('circle')
     .attr("cx", fromCartesianX(point.x))
     .attr("cy", fromCartesianY(point.y))
     .attr("r", pointRadius)
@@ -80,22 +80,24 @@ function createAssassinSVG(point, square, ray, stoppingPoints) {
   };
 }
 
-function createGuardsSVG(guards) {
-  let circleContainers = svg.selectAll(".guard").data(guards).enter().append('g');
-  let circles = circleContainers.append('circle');
-  circles.attr("cx", function (d) { return fromCartesianX(d.x); })
-         .attr("cy", function (d) { return fromCartesianY(d.y); })
-         .attr("r", pointRadius) 
-         .attr("fill", function (d) { return labelToColor[d.label]; })
-         .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
-         .attr("stroke-width", 2);
+function updateGuardsSVG(guards) {
+  let circleContainers = svg.selectAll(".guard").data(guards);
+  let newCircles = circleContainers.enter().append('circle');
+    newCircles
+      .attr("cx", function (d) { return fromCartesianX(d.x); })
+      .attr("cy", function (d) { return fromCartesianY(d.y); })
+      .attr("r", pointRadius) 
+      .attr("fill", function (d) { return labelToColor[d.label]; })
+      .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
+      .attr("stroke-width", 2);
 
-  return circles;
+  circleContainers.exit().remove();
+  return newCircles;
 }
 
 
-function setupBehavior(baseObjects, assassinSVGs) {
-  let { assassin, square, target, guards } = baseObjects;
+function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
+  let { assassin, square, target, guards, ray } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
 
   // On mouse move, reset and redraw ray
@@ -108,9 +110,25 @@ function setupBehavior(baseObjects, assassinSVGs) {
       let mouseVector = new Vector(toCartesianX(x), toCartesianY(y));
       ray.setDirection(mouseVector.subtract(ray.center));
       rayLinesSVG.attr("d", 
-        lineFunction(square.rayToPoints(ray, guards.concat([target]))));
+        lineFunction(square.rayToPoints(ray, guardsSVG.data().concat([targetSVG.datum()]))));
     }
   });
+
+  // Set up drag handlers
+  function dragged(d, point) {
+    d.x += d3.event.dx;
+    d.y -= d3.event.dy;
+    point.attr("x", fromCartesianX(d.x))
+         .attr("y", fromCartesianY(d.y));
+
+    let newGuards = computeOptimalGuards(square, assassinSVG.datum(), targetSVG.datum());
+    newGuards.forEach(guard => { guard.label = "guard"; });
+    updateGuardsSVG(newGuards);
+  }
+
+  targetSVG.call(d3.drag().on("drag", function(d) { 
+    dragged(d, targetSVG);
+  }));
 }
 
 
@@ -153,7 +171,7 @@ guards.forEach(guard => { guard.label = "guard"; });
 
 let squareSVG = createRectangleSVG(square);
 let targetSVG = createCircleSVG(target);
-let guardsSVG = createGuardsSVG(guards);
+let guardsSVG = updateGuardsSVG(guards);
 let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 
 let baseObjects = {
@@ -161,7 +179,8 @@ let baseObjects = {
   target: target,
   square: square,
   guards: guards,
+  ray: ray,
 };
 
 // Set up interactivity
-setupBehavior(baseObjects, assassinSVG);
+setupBehavior(baseObjects, assassinSVG, guardsSVG, targetSVG);
