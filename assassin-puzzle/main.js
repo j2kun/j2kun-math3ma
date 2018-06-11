@@ -82,17 +82,19 @@ function createAssassinSVG(point, square, ray, stoppingPoints) {
 
 function updateGuardsSVG(guards) {
   let circleContainers = svg.selectAll(".guard").data(guards);
-  let newCircles = circleContainers.enter().append('circle');
-    newCircles
+
+  circleContainers.enter().append('circle')
+      .merge(circleContainers)
       .attr("cx", function (d) { return fromCartesianX(d.x); })
       .attr("cy", function (d) { return fromCartesianY(d.y); })
       .attr("r", pointRadius) 
       .attr("fill", function (d) { return labelToColor[d.label]; })
       .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
-      .attr("stroke-width", 2);
+      .attr("stroke-width", 2)
+      .attr("class", "guard");
 
   circleContainers.exit().remove();
-  return newCircles;
+  return circleContainers;
 }
 
 
@@ -110,7 +112,7 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
       let mouseVector = new Vector(toCartesianX(x), toCartesianY(y));
       ray.setDirection(mouseVector.subtract(ray.center));
       rayLinesSVG.attr("d", 
-        lineFunction(square.rayToPoints(ray, guardsSVG.data().concat([targetSVG.datum()]))));
+        lineFunction(square.rayToPoints(ray, svg.selectAll(".guard").data().concat([targetSVG.datum()]))));
     }
   });
 
@@ -118,8 +120,8 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
   function dragged(d, point) {
     d.x += d3.event.dx;
     d.y -= d3.event.dy;
-    point.attr("x", fromCartesianX(d.x))
-         .attr("y", fromCartesianY(d.y));
+    point.attr("cx", fromCartesianX(d.x))
+         .attr("cy", fromCartesianY(d.y));
 
     let newGuards = computeOptimalGuards(square, assassinSVG.datum(), targetSVG.datum());
     newGuards.forEach(guard => { guard.label = "guard"; });
@@ -155,8 +157,9 @@ function randomPoint(square) {
 let square = new Rectangle(new Vector(-200, -200), new Vector(200, 200));
 let assassin = randomPoint(square);
 let target = randomPoint(square);
-let ray = new Ray(assassin, new Vector(10, 12), length=5000);
+let ray = new Ray(assassin, new Vector(10, 12));
 // Make sure the target isn't too close to the assassin
+
 let assassinToTargetMargin = 100;
 while (target.distance(assassin) < assassinToTargetMargin) {
   target = randomPoint(square);
@@ -170,7 +173,7 @@ target.label = "target";
 guards.forEach(guard => { guard.label = "guard"; });
 
 let squareSVG = createRectangleSVG(square);
-let targetSVG = createCircleSVG(target);
+let targetSVG = createCircleSVG(target).style("cursor", "pointer");
 let guardsSVG = updateGuardsSVG(guards);
 let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 
