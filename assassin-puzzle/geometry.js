@@ -66,7 +66,7 @@ class Vector {
  * where c is the center and v is the direction.
  */
 class Ray { 
-  constructor(center, direction, length=1000) {
+  constructor(center, direction, length=100000) {
     this.center = center;
     this.length = length;
 
