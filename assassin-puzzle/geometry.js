@@ -1,7 +1,3 @@
-function midpoint(a, b) {
-  return new Vector((a.x + b.x) / 2, (a.y + b.y) / 2);
-}
-
 function innerProduct(a, b) {
   return a.x * b.x + a.y * b.y;
 }
@@ -11,19 +7,24 @@ var epsilon = 0.0001;
 var intersectionRadius = 3;  // radius around each blocking point
 
 class Vector {
-  constructor(x, y, label) {
+  constructor(x, y, label, guardLabel) {
     this.x = x;
     this.y = y;
     this.label = label;
+    this.guardLabel = guardLabel;
   }
 
   copy() {
-    return new Vector(this.x, this.y);
+    return this.preservingAttrs(this.x, this.y);
+  }
+
+  preservingAttrs(x, y) {
+    return new Vector(x, y, this.label, this.guardLabel);
   }
 
   normalized() {
     let norm = 1.0 * this.norm();
-    return new Vector(this.x / norm, this.y / norm);
+    return this.preservingAttrs(this.x / norm, this.y / norm);
   }
 
   norm() {
@@ -31,19 +32,23 @@ class Vector {
   }
 
   add(vector) {
-    return new Vector(this.x + vector.x, this.y + vector.y);
+    return this.preservingAttrs(this.x + vector.x, this.y + vector.y);
   }
 
   subtract(vector) {
-    return new Vector(this.x - vector.x, this.y - vector.y);
+    return this.preservingAttrs(this.x - vector.x, this.y - vector.y);
   }
 
   scale(length) {
-    return new Vector(this.x * length, this.y * length);
+    return this.preservingAttrs(this.x * length, this.y * length);
   }
 
   distance(vector) {
     return this.subtract(vector).norm();
+  }
+
+  midpoint(b) {
+    return this.preservingAttrs((this.x + b.x) / 2, (this.y + b.y) / 2);
   }
 
   toString() {
@@ -128,7 +133,7 @@ class Rectangle {
   }
 
   center() {
-    return midpoint(this.bottomLeft, this.topRight);
+    return this.bottomLeft.midpoint(this.topRight);
   }
 
   width() {
@@ -284,25 +289,25 @@ class Rectangle {
   // Mirror a point across the top side of the rectangle
   mirrorTop(vector) {
     let dyToTop = this.topRight.y - vector.y;
-    return new Vector(vector.x, this.topRight.y + dyToTop);
+    return vector.preservingAttrs(vector.x, this.topRight.y + dyToTop);
   }
 
   // Mirror a point across the left side of the rectangle
   mirrorLeft(vector) {
     let dxToLeft = this.bottomLeft.x - vector.x;
-    return new Vector(this.bottomLeft.x + dxToLeft, vector.y);
+    return vector.preservingAttrs(this.bottomLeft.x + dxToLeft, vector.y);
   }
 
   // Mirror a point across the bottom side of the rectangle
   mirrorBottom(vector) {
     let dyToBottom = this.bottomLeft.y - vector.y;
-    return new Vector(vector.x, this.bottomLeft.y + dyToBottom);
+    return vector.preservingAttrs(vector.x, this.bottomLeft.y + dyToBottom);
   }
 
   // Mirror a point across the right side of the rectangle
   mirrorRight(vector) {
     let dxToRight = this.topRight.x - vector.x;
-    return new Vector(this.topRight.x + dxToRight, vector.y);
+    return vector.preservingAttrs(this.topRight.x + dxToRight, vector.y);
   }
 }
 
@@ -317,6 +322,10 @@ function computeOptimalGuards(square, assassin, target) {
   let target2 = square.mirrorTop(target);
   let target3 = square.mirrorRight(target);
   let target4 = square.mirrorTop(square.mirrorRight(target));
+  target1.guardLabel = 1;
+  target2.guardLabel = 2;
+  target3.guardLabel = 3;
+  target4.guardLabel = 4;
 
   // for each mirrored target, compute the four two-square-length translates
   let mirroredTargets = [target1, target2, target3, target4];
@@ -342,7 +351,7 @@ function computeOptimalGuards(square, assassin, target) {
   let translatedMidpoints = [];
   for (let i = 0; i < translatedTargets.length; i++) {
     let targetList = translatedTargets[i];
-    translatedMidpoints.push(targetList.map(t => midpoint(assassin, t)));
+    translatedMidpoints.push(targetList.map(t => t.midpoint(assassin)));
   }
 
   // determine which of the four possible translates the midpoint is in
@@ -392,6 +401,5 @@ module.exports = {
   Vector,
   Ray,
   Rectangle,
-  midpoint,
   computeOptimalGuards,
 };
