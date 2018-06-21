@@ -12,7 +12,7 @@ npm install -g gulp
 gulp watch    # demo live updates when code changes
 ```
 
-Then open `index.html` in a web browser and drag around the arrowheads.
+Then open `index.html` in a web browser.
 
 ```
 open index.html
