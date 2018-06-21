@@ -3,9 +3,10 @@ import { Vector, Ray, Rectangle, midpoint, computeOptimalGuards } from './geomet
 
 let width = 800;
 let height = 600;
-let svg = d3.select("body").insert("svg", ":first-child")
-                           .attr("width", width)
-                           .attr("height", height);
+let svg = d3.select("#puzzle_demo")
+  .insert("svg", ":first-child")
+  .attr("width", width)
+  .attr("height", height);
 
 let unit = 60;
 let numPoints = 40;
