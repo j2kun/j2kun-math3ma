@@ -1,8 +1,8 @@
 {
-  "name": "svm",
+  "name": "assassin-puzzle",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/j2kun/svm-sequential-minimal-optimization",
+  "repository": "https://github.com/j2kun/j2kun-math3ma/",
   "license": "MIT",
   "contributors": [
     {
@@ -10,8 +10,8 @@
       "url": "https://jeremykun.com"
     },
     {
-      "name": "Irene Papakonstantinou",
-      "url": "https://generalabstractnonsense.com"
+      "name": "Tai-Danae Bradley",
+      "url": "https://www.math3ma.com"
     }
   ],
   "scripts": {
