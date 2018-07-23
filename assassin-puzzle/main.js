@@ -3,7 +3,7 @@ import { Vector, Ray, Rectangle, midpoint, computeOptimalGuards } from './geomet
 
 let width = 800;
 let height = 600;
-let svg = d3.select("#puzzle_demo")
+let svg = d3.select(".puzzle_demo")
   .insert("svg", ":first-child")
   .attr("width", width)
   .attr("height", height);
@@ -74,7 +74,7 @@ function createPolylineSVG(points) {
 function createAssassinSVG(point, square, ray, stoppingPoints) {
   let assassinSVG = createCircleSVG(point);
   let rayLinesSVG = createPolylineSVG(square.rayToPoints(ray, stoppingPoints));
-  
+
   return {
     assassinSVG: assassinSVG,
     rayLinesSVG: rayLinesSVG,
@@ -88,7 +88,7 @@ function updateGuardsSVG(guards) {
       .merge(circleContainers)
       .attr("cx", function (d) { return fromCartesianX(d.x); })
       .attr("cy", function (d) { return fromCartesianY(d.y); })
-      .attr("r", pointRadius) 
+      .attr("r", pointRadius)
       .attr("fill", function (d) { return labelToColor[d.label]; })
       .attr("stroke", function (d) { return labelToStrokeColor[d.label]; })
       .attr("stroke-width", 2)
@@ -112,7 +112,7 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
     if (x != 0 && y != 0) {
       let mouseVector = new Vector(toCartesianX(x), toCartesianY(y));
       ray.setDirection(mouseVector.subtract(ray.center));
-      rayLinesSVG.attr("d", 
+      rayLinesSVG.attr("d",
         lineFunction(square.rayToPoints(ray, svg.selectAll(".guard").data().concat([targetSVG.datum()]))));
     }
   });
@@ -129,7 +129,7 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
     updateGuardsSVG(newGuards);
   }
 
-  targetSVG.call(d3.drag().on("drag", function(d) { 
+  targetSVG.call(d3.drag().on("drag", function(d) {
     dragged(d, targetSVG);
   }));
 }
