@@ -8,7 +8,7 @@ Intall prerequisites
 
 ```
 npm install   # or yarn install
-npm install -g gulp
+npm install gulp@3.9.1
 gulp watch    # demo live updates when code changes
 ```
 
