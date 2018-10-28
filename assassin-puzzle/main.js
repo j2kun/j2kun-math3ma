@@ -99,7 +99,7 @@ function updateGuardsSVG(guards) {
 }
 
 
-function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
+function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
   let { assassin, square, target, guards, ray } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
 
@@ -117,20 +117,41 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVG, targetSVG) {
     }
   });
 
-  // Set up drag handlers
-  function dragged(d, point) {
+  // Set up drag handler for guard
+  function drag_guard(d, point){
     d.x += d3.event.dx;
     d.y -= d3.event.dy;
     point.attr("cx", fromCartesianX(d.x))
          .attr("cy", fromCartesianY(d.y));
+  }
 
+  // Set up new guards after target drag
+  function setup_new_guards(){
     let newGuards = computeOptimalGuards(square, assassinSVG.datum(), targetSVG.datum());
-    newGuards.forEach(guard => { guard.label = "guard"; });
-    updateGuardsSVG(newGuards);
+    let newGuardCount = 0
+    newGuards.forEach(guard => { guard.label = "guard"; guard.name = ++newGuardCount; });
+    guardsSVGs = updateGuardsSVG(newGuards);
+    for (let i = 1; i <= newGuardCount; i++) {
+      let guardsSVG = guardsSVGs.filter(function(d) { return d.name == i})
+      guardsSVG.style("cursor", "pointer")
+      guardsSVG.call(d3.drag().on("drag", function(d) {
+        drag_guard(d, guardsSVG);
+      }));  
+    }
+  }
+
+  // Set up drag handlers for target
+  function drag_target(d, point) {
+    d.x += d3.event.dx;
+    d.y -= d3.event.dy;
+    point.attr("cx", fromCartesianX(d.x))
+         .attr("cy", fromCartesianY(d.y));
+    
+    setup_new_guards()   
   }
 
   targetSVG.call(d3.drag().on("drag", function(d) {
-    dragged(d, targetSVG);
+    drag_target(d, targetSVG);
   }));
 }
 
@@ -167,15 +188,16 @@ while (target.distance(assassin) < assassinToTargetMargin) {
 }
 
 // Now set up guards
+let guardCount = 0
 let guards = computeOptimalGuards(square, assassin, target);
 
 assassin.label = "assassin";
 target.label = "target";
-guards.forEach(guard => { guard.label = "guard"; });
+guards.forEach(guard => { guard.label = "guard"; guard.name = ++guardCount;});
 
 let squareSVG = createRectangleSVG(square);
 let targetSVG = createCircleSVG(target).style("cursor", "pointer");
-let guardsSVG = updateGuardsSVG(guards);
+let guardsSVGs = updateGuardsSVG(guards);
 let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 
 let baseObjects = {
@@ -187,4 +209,4 @@ let baseObjects = {
 };
 
 // Set up interactivity
-setupBehavior(baseObjects, assassinSVG, guardsSVG, targetSVG);
+setupBehavior(baseObjects, assassinSVG, guardsSVGs, targetSVG);
