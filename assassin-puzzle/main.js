@@ -72,8 +72,8 @@ function createPolylineSVG(points) {
 }
 
 function createAssassinSVG(point, square, ray, stoppingPoints) {
-  let assassinSVG = createCircleSVG(point);
   let rayLinesSVG = createPolylineSVG(square.rayToPoints(ray, stoppingPoints));
+  let assassinSVG = createCircleSVG(point);
 
   return {
     assassinSVG: assassinSVG,
@@ -126,17 +126,17 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
   }
 
   // Set up new guards after target drag
-  function setup_new_guards(){
+  function reset_guards() {
     let newGuards = computeOptimalGuards(square, assassinSVG.datum(), targetSVG.datum());
-    let newGuardCount = 0
+    let newGuardCount = 0;
     newGuards.forEach(guard => { guard.label = "guard"; guard.name = ++newGuardCount; });
     guardsSVGs = updateGuardsSVG(newGuards);
     for (let i = 1; i <= newGuardCount; i++) {
-      let guardsSVG = guardsSVGs.filter(function(d) { return d.name == i})
-      guardsSVG.style("cursor", "pointer")
+      let guardsSVG = guardsSVGs.filter(function(d) { return d.name == i});
+      guardsSVG.style("cursor", "pointer");
       guardsSVG.call(d3.drag().on("drag", function(d) {
         drag_guard(d, guardsSVG);
-      }));  
+      }));
     }
   }
 
@@ -146,13 +146,14 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
     d.y -= d3.event.dy;
     point.attr("cx", fromCartesianX(d.x))
          .attr("cy", fromCartesianY(d.y));
-    
-    setup_new_guards()   
+
+    reset_guards();
   }
 
   targetSVG.call(d3.drag().on("drag", function(d) {
     drag_target(d, targetSVG);
   }));
+  reset_guards();
 }
 
 
@@ -196,9 +197,9 @@ target.label = "target";
 guards.forEach(guard => { guard.label = "guard"; guard.name = ++guardCount;});
 
 let squareSVG = createRectangleSVG(square);
+let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 let targetSVG = createCircleSVG(target).style("cursor", "pointer");
 let guardsSVGs = updateGuardsSVG(guards);
-let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 
 let baseObjects = {
   assassin: assassin,
