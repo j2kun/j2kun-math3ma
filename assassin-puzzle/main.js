@@ -3,6 +3,7 @@ import { Vector, Ray, Rectangle, midpoint, computeOptimalGuards } from './geomet
 
 let width = 800;
 let height = 600;
+let side = 200;
 let svg = d3.select(".puzzle_demo")
   .insert("svg", ":first-child")
   .attr("width", width)
@@ -50,6 +51,17 @@ function createRectangleSVG(rectangle) {
   return rectangleSVG;
 }
 
+function createButtonSVG(text, x, y) {
+  let ButtonSVG = svg.append("text")
+       .text(text)
+       .attr("x", x)
+       .attr("y", y)
+       .attr("font-family", "sans-serif")
+       .attr("font-size", "20px")
+       .attr("fill", "red");
+  return ButtonSVG;
+}
+
 function createCircleSVG(point) {
   let circleSVG = svg.datum(point).append('circle')
     .attr("cx", fromCartesianX(point.x))
@@ -81,6 +93,18 @@ function createAssassinSVG(point, square, ray, stoppingPoints) {
   };
 }
 
+function createGuardSVG(point) {
+  let newguardSVG = svg.datum(point).append('circle')
+    .attr("cx", fromCartesianX(point.x))
+    .attr("cy", fromCartesianY(point.y))
+    .attr("r", pointRadius)
+    .attr("fill", labelToColor[point.label])
+    .attr("stroke", labelToStrokeColor[point.label])
+    .attr("stroke-width", 2)
+    .attr("class", "guard");
+  return newguardSVG;
+}
+
 function updateGuardsSVG(guards) {
   let circleContainers = svg.selectAll(".guard").data(guards);
 
@@ -99,7 +123,7 @@ function updateGuardsSVG(guards) {
 }
 
 
-function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
+function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG, clearbuttonSVG, guardbuttonSVG, revealbuttonSVG) {
   let { assassin, square, target, guards, ray } = baseObjects;
   let { assassinSVG, rayLinesSVG } = assassinSVGs;
 
@@ -140,6 +164,19 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
     }
   }
 
+  function clear_guards() {
+    let circleContainers = svg.selectAll(".guard").remove()
+  }
+
+  function add_guards(){
+    let newguard = randomPoint(square);
+    newguard.label = 'guard'
+    let newguardSVG = createGuardSVG(newguard).style("cursor", "pointer");
+    newguardSVG.call(d3.drag().on("drag", function(d) {
+      drag_guard(d, newguardSVG);
+    }));
+  }
+
   // Set up drag handlers for target
   function drag_target(d, point) {
     d.x += d3.event.dx;
@@ -147,13 +184,27 @@ function setupBehavior(baseObjects, assassinSVGs, guardsSVGs, targetSVG) {
     point.attr("cx", fromCartesianX(d.x))
          .attr("cy", fromCartesianY(d.y));
 
-    reset_guards();
+    //reset_guards();
+    clear_guards();
   }
 
   targetSVG.call(d3.drag().on("drag", function(d) {
     drag_target(d, targetSVG);
   }));
   reset_guards();
+
+  function setupButtonBehavior(clearbuttonSVG, guardbuttonSVG, revealbuttonSVG ){
+    clearbuttonSVG.on("click", function(d){
+      clear_guards();
+    });
+    revealbuttonSVG.on("click", function(d){
+      reset_guards();
+    });
+    guardbuttonSVG.on("click", function(d){
+      add_guards();
+    });
+  }
+  setupButtonBehavior(clearbuttonSVG, guardbuttonSVG, revealbuttonSVG)
 }
 
 
@@ -177,7 +228,7 @@ function randomPoint(square) {
 }
 
 // Set up the geometric objects
-let square = new Rectangle(new Vector(-200, -200), new Vector(200, 200));
+let square = new Rectangle(new Vector(-side, -side), new Vector(side, side));
 let assassin = randomPoint(square);
 let target = randomPoint(square);
 let ray = new Ray(assassin, new Vector(10, 12));
@@ -196,6 +247,9 @@ assassin.label = "assassin";
 target.label = "target";
 guards.forEach(guard => { guard.label = "guard"; guard.name = ++guardCount;});
 
+let clearbuttonSVG = createButtonSVG('CLEAR GUARDS', width / 4, height).style("cursor", "pointer");
+let guardbuttonSVG = createButtonSVG('ADD GUARD', width / 2, height).style("cursor", "pointer");
+let revealbuttonSVG = createButtonSVG('REVEAL GUARDS', width - side , height).style("cursor", "pointer");
 let squareSVG = createRectangleSVG(square);
 let assassinSVG = createAssassinSVG(assassin, square, ray, guards.concat([target]));
 let targetSVG = createCircleSVG(target).style("cursor", "pointer");
@@ -210,4 +264,4 @@ let baseObjects = {
 };
 
 // Set up interactivity
-setupBehavior(baseObjects, assassinSVG, guardsSVGs, targetSVG);
+setupBehavior(baseObjects, assassinSVG, guardsSVGs, targetSVG, clearbuttonSVG, guardbuttonSVG, revealbuttonSVG);
